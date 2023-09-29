@@ -22,13 +22,16 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     print(potions_delivered)
     #update table with potions delivered
     with engine.begin() as connection:
-        # get current number of red potions in table
+        # get current number of red potions and red_ml in table
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
         current_red_potions = first_row.num_red_potions
-        # update table with sum of red potions
+        current_red_ml = first_row.num_red_ml
+        # update table with sum of red potions and red_ml
         total_red_potions = current_red_potions + potions_delivered.quantity
+        total_red_ml = current_red_ml - (potions_delivered.quantity * 100)
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + total_red_potions))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + total_red_potions))
 
     return "OK"
 
