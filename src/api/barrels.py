@@ -25,7 +25,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     print(barrels_delivered)
     # get total number of red_ml we got
     total_red_ml_delivered = 0
-    for barrel in barrels_delivered
+    for barrel in barrels_delivered:
         total_red_ml_delivered += barrel.ml_per_barrel
     # add current num_red_ml with red_ml_delivered
     with db.engine.begin() as connection:
