@@ -27,8 +27,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     total_red_ml_delivered = 0
     total_gold_spent = 0
     for barrel in barrels_delivered:
-        total_red_ml_delivered += barrel.ml_per_barrel
-        total_gold_spent += barrel.price
+        total_red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+        total_gold_spent += barrel.price * barrel.quantity
     # add current num_red_ml with red_ml_delivered
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
@@ -39,7 +39,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         result = connection.execute(sqlalchemy.text("UPDATE * SET num_red_ml = " + total_red_ml))
     # update gold in DB
         result = connection.execute(sqlalchemy.text("UPDATE * SET gold = " + total_gold))
-        
+
     return "OK"
 
 # Gets called once a day
