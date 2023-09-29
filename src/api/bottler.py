@@ -46,10 +46,10 @@ def get_bottle_plan():
     # Initial logic: bottle all barrels into red potions.
     # get amount of red_ml i have
     with engine.begin() as connection:
-    result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-    first_row = result.first()
-    red_ml = first_row.num_red_ml
-    potions_to_brew = red_ml / 100
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        first_row = result.first()
+        red_ml = first_row.num_red_ml
+        potions_to_brew = red_ml / 100
 
     return [
             {
