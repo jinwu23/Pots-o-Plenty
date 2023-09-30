@@ -20,18 +20,21 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     print(potions_delivered)
+    #initializing variables
+    current_red_potions = 0
+    current_red_ml = 0
     #update table with potions delivered
-    with engine.begin() as connection:
+    with db.engine.begin() as connection:
         # get current number of red potions and red_ml in table
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
         current_red_potions = first_row.num_red_potions
         current_red_ml = first_row.num_red_ml
         # update table with sum of red potions and red_ml
-        total_red_potions = current_red_potions + potions_delivered.quantity
-        total_red_ml = current_red_ml - (potions_delivered.quantity * 100)
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + total_red_potions))
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + total_red_potions))
+        total_red_potions = current_red_potions + potions_delivered[0].quantity
+        total_red_ml = current_red_ml - (potions_delivered[0].quantity * 100)
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(total_red_potions)))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(total_red_ml)))
 
     return "OK"
 
@@ -48,10 +51,11 @@ def get_bottle_plan():
 
     # Initial logic: bottle all barrels into red potions.
     # get amount of red_ml i have
-    with engine.begin() as connection:
+    with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
         red_ml = first_row.num_red_ml
+        print("red_ml in DB = " + str(red_ml))
         potions_to_brew = red_ml / 100
 
     return [

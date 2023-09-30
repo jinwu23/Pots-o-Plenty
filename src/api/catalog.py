@@ -12,10 +12,11 @@ def get_catalog():
 
     # Can return a max of 20 items.
     # figure out how many red_potions table has 
+
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy("SELECT * FROM global_inventory"))
-        first_row = result.first()
-        total_red_potions = first_row.num_red_potions
+            result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+            first_row = result.first()
+            total_red_potions = first_row.num_red_potions
 
     return [
             {
