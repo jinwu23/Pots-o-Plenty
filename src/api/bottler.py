@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from src.api import auth
 import sqlalchemy
 from src import database as db
+import math
 
 
 router = APIRouter(
@@ -55,12 +56,14 @@ def get_bottle_plan():
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
         red_ml = first_row.num_red_ml
-        print("red_ml in DB = " + str(red_ml))
-        potions_to_brew = red_ml / 100
+        potions_to_brew = math.floor(red_ml / 100)
 
-    return [
-            {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": potions_to_brew,
-            }
-        ]
+    if potions_to_brew > 0:
+        return [
+                {
+                    "potion_type": [100, 0, 0, 0],
+                    "quantity": potions_to_brew,
+                }
+            ]
+    else:
+        return []

@@ -36,9 +36,9 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         total_red_ml = total_red_ml_delivered + first_row.num_red_ml
         total_gold = first_row.gold - total_gold_spent
     # update num_red_ml in DB
-        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(total_red_ml)))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(total_red_ml)))
     # update gold in DB
-        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(total_gold)))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(total_gold)))
 
     return "OK"
 
@@ -66,9 +66,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     # Check if we can buy entire stock
     if purchasable_barrels > small_red_barrel_quantity:
         purchasable_barrels = small_red_barrel_quantity
-    return [
-        {
-            "sku": "SMALL_RED_BARREL",
-            "quantity": purchasable_barrels,
-        }
-    ]
+    if purchasable_barrels > 0:
+        return [
+            {
+                "sku": "SMALL_RED_BARREL",
+                "quantity": purchasable_barrels,
+            }
+        ]
+    else:
+        return []

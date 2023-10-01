@@ -11,6 +11,16 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+# dictionary to store each cart to cart_id
+total_carts = {}
+# keeping track of cart_ids in use
+running_cart_id = 1
+
+# class to keep quantity and item_sku of carts together
+class Cart:
+    def __init__(self, quantity, item_sku):
+        self.quantity = quantity
+        self.item_sku = item_sku
 
 class NewCart(BaseModel):
     customer: str
@@ -19,14 +29,17 @@ class NewCart(BaseModel):
 @router.post("/")
 def create_cart(new_cart: NewCart):
     """ """
-    return {"cart_id": 1}
+    global running_cart_id
+    global total_carts
+    cart_id = running_cart_id
+    running_cart_id += 1
+    return {"cart_id": cart_id}
 
 
 @router.get("/{cart_id}")
 def get_cart(cart_id: int):
     """ """
-
-    return {"cart id = " + card_id}
+    return {"cart id = " + str(cart_id)}
 
 
 class CartItem(BaseModel):
@@ -36,9 +49,8 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-
+    total_carts.update({cart_id : Cart(cart_item.quantity, item_sku)})
     return "OK"
-
 
 class CartCheckout(BaseModel):
     payment: str
@@ -46,4 +58,21 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+    # obtaining item quantity and item_sku
+    item_quantity = total_carts[cart_id].quantity
+    item_sku = total_carts[cart_id].item_sku
+    # checking for red potion purchase
+    if item_sku == "RED_POTION_0":
+        with db.engine.begin() as connection:
+            # figuring out new gold and red potion count
+            result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+            first_row = result.first()
+            total_gold = first_row.gold + int(cart_checkout.payment)
+            total_red_potions =  first_row.num_red_potions - item_quantity
+            # update gold and potion count in DB
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(total_gold)))
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(total_red_potions)))
+    # deleting cart from dictionary
+    del total_carts[cart_id]
+
+    return {"total_potions_bought": item_quantity, "total_gold_paid": cart_checkout.payment}
