@@ -59,8 +59,8 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     # obtaining item quantity and item_sku
-    item_quantity = total_carts[cart_id].quantity
-    item_sku = total_carts[cart_id].item_sku
+    int item_quantity = total_carts[cart_id].quantity
+    int item_sku = total_carts[cart_id].item_sku
     # checking for red potion purchase
     if item_sku == "RED_POTION_0":
         with db.engine.begin() as connection:
@@ -70,8 +70,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             total_gold = first_row.gold + int(cart_checkout.payment)
             total_red_potions =  first_row.num_red_potions - item_quantity
             # update gold and potion count in DB
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(total_gold)))
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(total_red_potions)))
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(int(total_gold))))
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(int(total_red_potions))))
     # deleting cart from dictionary
     del total_carts[cart_id]
 
