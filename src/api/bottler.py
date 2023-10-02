@@ -34,8 +34,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
         # update table with sum of red potions and red_ml
         total_red_potions = current_red_potions + potions_delivered[0].quantity
         total_red_ml = current_red_ml - (potions_delivered[0].quantity * 100)
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(total_red_potions)))
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(total_red_ml)))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(int(total_red_potions))))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(int(total_red_ml))))
 
     return "OK"
 
