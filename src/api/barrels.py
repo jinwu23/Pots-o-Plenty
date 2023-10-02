@@ -62,7 +62,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             small_red_barrel_price = barrel.price
             small_red_barrel_quantity = barrel.quantity
     # Checking how many small red barrels I can buy
-    int(purchasable_barrels = curr_gold / small_red_barrel_price)
+    purchasable_barrels = int(curr_gold / small_red_barrel_price)
     # Check if we can buy entire stock
     if purchasable_barrels > small_red_barrel_quantity:
         purchasable_barrels = small_red_barrel_quantity

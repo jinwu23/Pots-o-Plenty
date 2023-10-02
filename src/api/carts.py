@@ -59,8 +59,8 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     # obtaining item quantity and item_sku
-    int item_quantity = total_carts[cart_id].quantity
-    int item_sku = total_carts[cart_id].item_sku
+    item_quantity = total_carts[cart_id].quantity
+    item_sku = total_carts[cart_id].item_sku
     # checking for red potion purchase
     if item_sku == "RED_POTION_0":
         with db.engine.begin() as connection:
@@ -75,4 +75,4 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     # deleting cart from dictionary
     del total_carts[cart_id]
 
-    return {"total_potions_bought": item_quantity, "total_gold_paid": cart_checkout.payment}
+    return {"total_potions_bought": int(item_quantity), "total_gold_paid": int(cart_checkout.payment)}
