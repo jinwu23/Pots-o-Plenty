@@ -58,6 +58,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         curr_gold = first_row.gold
     # Checking price and quantity of SMALL_RED_BARREL
     for barrel in wholesale_catalog:
+        console.log(barrel)
         if barrel.sku == "SMALL_RED_BARREL":
             small_red_barrel_price = barrel.price
             small_red_barrel_quantity = barrel.quantity
