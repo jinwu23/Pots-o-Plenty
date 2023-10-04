@@ -30,7 +30,6 @@ class NewCart(BaseModel):
 def create_cart(new_cart: NewCart):
     """ """
     global running_cart_id
-    global total_carts
     cart_id = running_cart_id
     running_cart_id += 1
     return {"cart_id": cart_id}
@@ -49,6 +48,7 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
+    global total_carts
     total_carts.update({cart_id : Cart(cart_item.quantity, item_sku)})
     return "OK"
 
@@ -58,6 +58,7 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
+    global total_carts
     # obtaining item quantity, item_sku and expected payment
     item_quantity = total_carts[cart_id].quantity
     item_sku = total_carts[cart_id].item_sku
@@ -74,6 +75,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(int(total_gold))))
             connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(int(total_red_potions))))
     # deleting cart from dictionary
-    del total_carts[cart_id]
+    total_carts.pop(cart_id)
 
     return {"total_potions_bought": int(item_quantity), "total_gold_paid": int(expected_payment)}
