@@ -50,6 +50,8 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
+    print("setting cart quantity: cart_id: " + str(cart_id) + " item_sku: + " + str(item_sku) + " quantity: " + str(cart_item.quantity))
+
     # update carts table with new quantity
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text("UPDATE carts SET quantity = "+ str(cart_item.quantity) +" WHERE id = " + str(cart_id)))
@@ -78,9 +80,11 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         global_inventory_num_potions = first_row.num_red_potions
         new_global_inventory_gold = global_inventory_gold + total_gold_paid
         new_global_inventory_num_potions = global_inventory_num_potions - total_potions_bought
+        print("checking out cart quantity: cart_id: " + str(cart_id) + " | item_sku: RED_POTION_0 | quantity: " + str(customer_quantity))
         # updating global_inventory with new amounts
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(new_global_inventory_gold)))
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(new_global_inventory_num_potions)))
+        print("checking out cart quantity: cart_id: " + str(cart_id) + " | new_global_inventory_gold = "+ str(new_global_inventory_gold)+ "| new_global_inventory_num_potions = "+ str(new_global_inventory_num_potions) )
         # removing the cart from the table
         connection.execute(sqlalchemy.text("DELETE FROM carts WHERE id = " + str(cart_id)))
         
