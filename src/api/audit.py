@@ -20,6 +20,7 @@ def get_inventory():
         num_gold = first_row.gold
         num_potions = first_row.num_red_potions
         num_red_ml = first_row.num_red_ml
+        print(f"audit_gold: {num_gold}, audit_potions: {num_potions}, audit_red_ml: {num_red_ml}")
 
     return {"number_of_potions": num_potions, "ml_in_barrels": num_red_ml, "gold": num_gold}
 

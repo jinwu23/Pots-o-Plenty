@@ -33,12 +33,12 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
-        total_red_ml = total_red_ml_delivered + first_row.num_red_ml
-        total_gold = first_row.gold - total_gold_spent
+        total_red_ml = int(total_red_ml_delivered + first_row.num_red_ml)
+        total_gold = int(first_row.gold - total_gold_spent)
     # update num_red_ml in DB
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(int(total_red_ml))))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {total_red_ml}"))
     # update gold in DB
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(int(total_gold))))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {total_gold}"))
 
     return "OK"
 
