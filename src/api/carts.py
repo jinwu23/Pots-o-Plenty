@@ -80,7 +80,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         global_inventory_num_potions = first_row.num_red_potions
         new_global_inventory_gold = global_inventory_gold + total_gold_paid
         new_global_inventory_num_potions = global_inventory_num_potions - total_potions_bought
-        print("checking out cart quantity: cart_id: " + str(cart_id) + " | item_sku: RED_POTION_0 | quantity: " + str(customer_quantity))
+        print("checking out cart quantity: cart_id: " + str(cart_id) + " | item_sku: RED_POTION_0 | quantity: " + str(customer_quantity) + " | global_inventory_gold_before_checkout: " + str(global_inventory_gold) + " | global_inventory_potions_before_checkout: " + str(global_inventory_num_potions))
         # updating global_inventory with new amounts
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(new_global_inventory_gold)))
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(new_global_inventory_num_potions)))
