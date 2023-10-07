@@ -18,7 +18,7 @@ def get_inventory():
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
         num_gold = first_row.gold
-        num_potions = first_row.num_red_potions
+        num_potions = first_row.total_potions
         num_red_ml = first_row.num_red_ml
         print(f"audit_gold: {num_gold}, audit_potions: {num_potions}, audit_red_ml: {num_red_ml}")
 
