@@ -39,6 +39,12 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
         current_green_ml = first_row.num_green_ml
         current_blue_potions = first_row.num_blue_potions
         current_blue_ml = first_row.num_blue_ml
+        total_red_potions = 0
+        total_green_potions = 0
+        total_blue_potions = 0
+        total_red_ml = 0
+        total_green_ml = 0
+        total_blue_ml = 0
         # update table with sum of potions and ml
         for potion in potions_delivered:
             if(potion.potion_type == [100, 0, 0, 0]):
