@@ -53,7 +53,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
             if(potion.potion_type == [0, 100, 0, 0]):
                 total_green_potions = int(current_green_potions + potion.quantity)
                 total_green_ml = int(current_green_ml - (potion.quantity * 100))
-            if(potion.potion_type == [100, 0, 0, 0]):
+            if(potion.potion_type == [0, 0, 100, 0]):
                 total_blue_potions = int(current_blue_potions + potion.quantity)
                 total_blue_ml = int(current_blue_ml - (potion.quantity * 100))
         current_total_potions = total_red_potions + total_green_potions + total_blue_potions
