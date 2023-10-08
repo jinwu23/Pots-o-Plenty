@@ -47,4 +47,5 @@ def get_catalog():
                     "price": 100,
                     "potion_type": [0, 0, 100, 0],
                 })
+    print(ret_arr)
     return ret_arr
