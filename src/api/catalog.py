@@ -26,7 +26,7 @@ def get_catalog():
                     "sku": "RED_POTION_0",
                     "name": "red potion",
                     "quantity": total_red_potions,
-                    "price": 0,
+                    "price": 100,
                     "potion_type": [100, 0, 0, 0],
                 })
     if total_green_potions > 0:

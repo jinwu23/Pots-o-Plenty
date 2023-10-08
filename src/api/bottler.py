@@ -57,6 +57,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                 total_blue_potions = int(current_blue_potions + potion.quantity)
                 total_blue_ml = int(current_blue_ml - (potion.quantity * 100))
         current_total_potions = total_red_potions + total_green_potions + total_blue_potions
+        current_total_ml = total_red_ml + total_green_ml + total_blue_ml
         # updating values in database
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {total_red_potions}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {total_red_ml}"))
@@ -65,6 +66,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = {total_blue_potions}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = {total_blue_ml}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_potions = {current_total_potions}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_ml = {current_total_ml}"))
 
     return "OK"
 

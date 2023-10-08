@@ -45,11 +45,13 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         total_red_ml = int(total_red_ml_delivered + first_row.num_red_ml)
         total_green_ml = int(total_green_ml_delivered + first_row.num_green_ml)
         total_blue_ml = int(total_blue_ml_delivered + first_row.num_blue_ml)
+        total_ml = total_red_ml + total_green_ml + total_blue_ml
         total_gold = int(first_row.gold - total_gold_spent)
     # update num_red_ml in DB
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {total_red_ml}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {total_green_ml}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = {total_blue_ml}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_ml = {total_ml}"))
     # update gold in DB
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {total_gold}"))
 
