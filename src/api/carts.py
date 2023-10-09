@@ -68,7 +68,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         if item == "BLUE_POTION_0":
             total_blue_potions_bought = carts[cart_id][item]
     total_potions_bought = total_red_potions_bought + total_green_potions_bought + total_blue_potions_bought
-    total_gold_paid = total_potions_bought * 50
+    total_gold_paid = total_potions_bought * 1
 
     with db.engine.begin() as connection:
         # obtaining gold and num_potions in global_inventory
