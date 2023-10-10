@@ -29,9 +29,6 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     total_blue_ml_delivered = 0
     total_gold_spent = 0
     for barrel in barrels_delivered:
-        if(barrel.sku == "MINI_RED_BARREL"):
-            total_red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            total_gold_spent += barrel.price * barrel.quantity
         if(barrel.sku == "SMALL_RED_BARREL"):
             total_red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
             total_gold_spent += barrel.price * barrel.quantity
@@ -67,7 +64,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
     #initializing variables
     curr_gold = 0
-    mini_red_barrel_price = 0
     small_red_barrel_price = 0
     small_green_barrel_price = 0
     small_blue_barrel_price = 0
@@ -78,8 +74,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         curr_gold = first_row.gold
     # Checking price and quantity of SMALL_RED|GREEN|BLUE_BARREL
     for barrel in wholesale_catalog:
-        if barrel.sku == "MINI_RED_BARREL":
-            mini_red_barrel_price = barrel.price
         if barrel.sku == "SMALL_RED_BARREL":
             small_red_barrel_price = barrel.price
         elif barrel.sku == "SMALL_GREEN_BARREL":
@@ -89,25 +83,19 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     # Checking how many small red barrels I can buy
     # logic being: try to purchase one of each barrel, red -> green -> blue
     ret_arr = []
-    if curr_gold >= mini_red_barrel_price:
-        ret_arr.append(
-                {
-                "sku": "MINI_RED_BARREL",
-                "quantity": 1,
-                })
-    if curr_gold >= mini_red_barrel_price + small_red_barrel_price:
+    if curr_gold >= small_red_barrel_price:
         ret_arr.append(
                 {
                 "sku": "SMALL_RED_BARREL",
                 "quantity": 1,
                 })
-    if curr_gold >= mini_red_barrel_price + small_red_barrel_price + small_green_barrel_price:
+    if curr_gold >= small_red_barrel_price + small_green_barrel_price:
         ret_arr.append(
                 {
                 "sku": "SMALL_GREEN_BARREL",
                 "quantity": 1,
             })
-    if curr_gold >= mini_red_barrel_price + small_red_barrel_price + small_green_barrel_price + small_blue_barrel_price:
+    if curr_gold >= small_red_barrel_price + small_green_barrel_price + small_blue_barrel_price:
         ret_arr.append(
                 {
                 "sku": "SMALL_BLUE_BARREL",

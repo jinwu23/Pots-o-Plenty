@@ -55,40 +55,35 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    # obtaining item quantity and expected payment
-    total_gold_paid = 0
-    total_red_potions_bought = 0
-    total_green_potions_bought = 0
-    total_blue_potions_bought = 0
-    for item in carts[cart_id].keys():
-        if item == "RED_POTION_0":
-            total_red_potions_bought = carts[cart_id][item]
-        if item == "GREEN_POTION_0":
-            total_green_potions_bought = carts[cart_id][item]
-        if item == "BLUE_POTION_0":
-            total_blue_potions_bought = carts[cart_id][item]
-    total_potions_bought = total_red_potions_bought + total_green_potions_bought + total_blue_potions_bought
-    total_gold_paid = total_potions_bought * 1
-
+    # obtaining sku of item bought
     with db.engine.begin() as connection:
+        for checkout_sku in carts[cart_id].keys():
+            # obtain quantity of potion
+            result = connection.execute(sqlalchemy.text(f"SELECT * FROM potions WHERE sku = {checkout_sku}"))
+            first_row = result.first()
+            potion_quantity = first_row.quantity
+            # updating potion count in potions table
+            connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = {potion_quantity - carts[cart_id][checkout_sku]} WHERE sku = {checkout_sku}"))
+            if checkout_sku == "RED_POTION_100":
+                total_red_potions_bought = carts[cart_id][checkout_sku]
+            if checkout_sku == "GREEN_POTION_100":
+                total_green_potions_bought = carts[cart_id][checkout_sku]
+            if checkout_sku == "BLUE_POTION_100":
+                total_blue_potions_bought = carts[cart_id][checkout_sku]
+            if checkout_sku == "PURPLE_POTION_50_50":
+                total_purple_potions_bought = carts[cart_id][checkout_sku]
+        total_potions_bought = total_red_potions_bought + total_green_potions_bought + total_blue_potions_bought + total_purple_potions_bought
+        total_gold_paid = total_potions_bought * 50
         # obtaining gold and num_potions in global_inventory
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
-        new_global_inventory_gold = first_row.gold + total_gold_paid
-        new_global_inventory_num_potions = first_row.total_potions - total_potions_bought
-        new_global_inventory_num_red_potions = first_row.num_red_potions - total_red_potions_bought
-        new_global_inventory_num_green_potions = first_row.num_green_potions - total_green_potions_bought
-        new_global_inventory_num_blue_potions = first_row.num_blue_potions - total_blue_potions_bought
+        new_gold = first_row.gold + total_gold_paid
+        new_num_potions = first_row.total_potions - total_potions_bought
         print(f"checking out cart quantity: cart_id: {cart_id} | total_quantity: {total_potions_bought} | global_inventory_gold_before_checkout: {first_row.gold} | global_inventory_potions_before_checkout: {first_row.total_potions}")
-        print(f"total_red_quantity: {total_red_potions_bought} | total_green_quantity: {total_green_potions_bought}")
         # updating global_inventory with new amounts
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {new_global_inventory_gold}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_potions = {new_global_inventory_num_potions}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {new_global_inventory_num_red_potions}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {new_global_inventory_num_green_potions}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = {new_global_inventory_num_blue_potions}"))
-
-        print(f"checking out cart quantity: cart_id: {cart_id} | new_global_inventory_gold = {new_global_inventory_gold} | new_global_inventory_num_potions = {new_global_inventory_num_potions}")
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {new_gold}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_potions = {new_num_potions}"))
+        print(f"checking out cart quantity: cart_id: {cart_id} | new_global_inventory_gold = {new_gold} | new_global_inventory_num_potions = {new_num_potions}")
         # removing cart from table
         carts.pop(cart_id)
     return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
