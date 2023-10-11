@@ -23,6 +23,7 @@ INSERT INTO global_inventory (
 VALUES (100, 0, 0, 0, 0, 0, 0, 0, 0);
 
 CREATE TABLE potions(
+    id bigint generated always as identity,
     sku: text,
     name: text,
     quantity: int,

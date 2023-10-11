@@ -24,37 +24,31 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
     print(barrels_delivered)
     # get total number of ml we purchased and gold spent
-    total_red_ml_delivered = 0
-    total_green_ml_delivered = 0
-    total_blue_ml_delivered = 0
-    total_gold_spent = 0
+    red_ml_delivered = 0
+    green_ml_delivered = 0
+    blue_ml_delivered = 0
+    gold_spent = 0
     for barrel in barrels_delivered:
         if(barrel.sku == "SMALL_RED_BARREL"):
-            total_red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            total_gold_spent += barrel.price * barrel.quantity
+            red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+            gold_spent += barrel.price * barrel.quantity
         if(barrel.sku == "SMALL_GREEN_BARREL"):
-            total_green_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            total_gold_spent += barrel.price * barrel.quantity
+            green_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+            gold_spent += barrel.price * barrel.quantity
         if(barrel.sku == "SMALL_BLUE_BARREL"):
-            total_blue_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            total_gold_spent += barrel.price * barrel.quantity
+            blue_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+            gold_spent += barrel.price * barrel.quantity
     # add current ml with ml_delivered
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        first_row = result.first()
-        total_red_ml = int(total_red_ml_delivered + first_row.red_ml)
-        total_green_ml = int(total_green_ml_delivered + first_row.green_ml)
-        total_blue_ml = int(total_blue_ml_delivered + first_row.blue_ml)
-        total_ml = total_red_ml + total_green_ml + total_blue_ml
-        total_gold = int(first_row.gold - total_gold_spent)
-    # update num_red_ml in DB
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET red_ml = {total_red_ml}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET green_ml = {total_green_ml}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET blue_ml = {total_blue_ml}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_ml = {total_ml}"))
-    # update gold in DB
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {total_gold}"))
-
+        connection.execute(
+            sqlalchemy.text("""
+                UPDATE global_inventory SET 
+                gold = gold - :gold_spent,
+                red_ml = red_ml + :red_ml_delivered,
+                green_ml = green_ml + :green_ml_delivered,
+                blue_ml = blue_ml + :blue_ml_delivered
+            """), 
+            [{"gold_spent": gold_spent, "red_ml_delivered": red_ml_delivered, "green_ml_delivered": green_ml_delivered, "blue_ml_delivered": blue_ml_delivered}])
     return "OK"
 
 # Gets called once a day

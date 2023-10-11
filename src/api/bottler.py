@@ -24,33 +24,45 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     #update table with potions delivered
     with db.engine.begin() as connection:
         # update table with sum of potions and ml
-        result = connection.execute(sqlalchemy.text("SELECT * FROM potions"))            
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions"))   
+        # loop through each potion in potions table         
         for potion_row in result:
-            current_row_potions = potion_row.quantity
+            # loop through potions delivered and find corresponding potion
             for potions in potions_delivered:
                 if (potions.potion_type[0] == potion_row.red and 
                    potions.potion_type[1] == potion_row.green and
                    potions.potion_type[2] == potion_row.blue and
                    potions.potion_type[3] == potion_row.dark):
-                    # get current totals from global_inventory
-                    result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-                    first_row = result.first()
-                    current_total_potions = first_row.total_potions
-                    current_total_ml = first_row.total_ml
-                    current_red_ml = first_row.red_ml
-                    current_green_ml = first_row.green_ml
-                    current_blue_ml = first_row.blue_ml
+                    # get ml spent for each type
                     red_ml_spent = potion_row.red * potions.quantity
                     green_ml_spent = potion_row.green * potions.quantity
                     blue_ml_spent = potion_row.blue * potions.quantity
                     total_ml_spent = red_ml_spent + green_ml_spent + blue_ml_spent
                     # update values in database
-                    connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = {current_row_potions + potions.quantity} WHERE sku = '{potion_row.sku}'"))
-                    connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_potions = {current_total_potions + potions.quantity}"))
-                    connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_ml = {current_total_ml - total_ml_spent}"))
-                    connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET red_ml = {current_red_ml - red_ml_spent}"))
-                    connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET green_ml = {current_green_ml - green_ml_spent}"))
-                    connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET blue_ml = {current_blue_ml - blue_ml_spent}"))
+                    connection.execute(
+                        sqlalchemy.text("""
+                            UPDATE potions SET
+                            quantity = quantity + :potions_delivered WHERE sku = :sku
+                        """),
+                    [{"potions_delivered": potions.quantity,
+                      "sku": potion_row.sku,
+                    }])
+                    connection.execute(
+                        sqlalchemy.text("""
+                            UPDATE global_inventory SET
+                            total_potions = total_potions + :potions_delivered,
+                            total_ml = total_ml - :total_ml_spent,
+                            red_ml = red_ml - :red_ml_spent,
+                            green_ml = green_ml - :green_ml_spent,
+                            blue_ml = blue_ml - :blue_ml_spent
+                        """),
+                    [{"potions_delivered": potions.quantity,
+                       "sku": potion_row.sku,
+                       "total_ml_spent": total_ml_spent,
+                        "red_ml_spent": red_ml_spent,
+                        "green_ml_spent": green_ml_spent,
+                        "blue_ml_spent": blue_ml_spent
+                    }])
 
     return "OK"
 
