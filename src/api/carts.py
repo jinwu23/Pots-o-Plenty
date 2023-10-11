@@ -55,15 +55,21 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
+    # initializing variables 
+    total_red_potions_bought = 0
+    total_green_potions_bought = 0
+    total_blue_potions_bought = 0
+    total_purple_potions_bought = 0
+
     # obtaining sku of item bought
     with db.engine.begin() as connection:
         for checkout_sku in carts[cart_id].keys():
             # obtain quantity of potion
-            result = connection.execute(sqlalchemy.text(f"SELECT * FROM potions WHERE sku = {checkout_sku}"))
+            result = connection.execute(sqlalchemy.text(f"SELECT * FROM potions WHERE sku = '{checkout_sku}'"))
             first_row = result.first()
             potion_quantity = first_row.quantity
             # updating potion count in potions table
-            connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = {potion_quantity - carts[cart_id][checkout_sku]} WHERE sku = {checkout_sku}"))
+            connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = {potion_quantity - carts[cart_id][checkout_sku]} WHERE sku = '{checkout_sku}'"))
             if checkout_sku == "RED_POTION_100":
                 total_red_potions_bought = carts[cart_id][checkout_sku]
             if checkout_sku == "GREEN_POTION_100":

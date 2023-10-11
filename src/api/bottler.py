@@ -37,15 +37,15 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                     first_row = result.first()
                     current_total_potions = first_row.total_potions
                     current_total_ml = first_row.total_ml
-                    current_red_ml = first_row.num_red_ml
-                    current_green_ml = first_row.num_green_ml
-                    current_blue_ml = first_row.num_blue_ml
-                    red_ml_spent = potion_row.red * potions_delivered.quantity
-                    green_ml_spent = potion_row.green * potions_delivered.quantity
-                    blue_ml_spent = potion_row.blue * potions_delivered.quantity
+                    current_red_ml = first_row.red_ml
+                    current_green_ml = first_row.green_ml
+                    current_blue_ml = first_row.blue_ml
+                    red_ml_spent = potion_row.red * potions.quantity
+                    green_ml_spent = potion_row.green * potions.quantity
+                    blue_ml_spent = potion_row.blue * potions.quantity
                     total_ml_spent = red_ml_spent + green_ml_spent + blue_ml_spent
                     # update values in database
-                    connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = {current_row_potions + potions.quantity} WHERE sku = {potion_row.sku}"))
+                    connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = {current_row_potions + potions.quantity} WHERE sku = '{potion_row.sku}'"))
                     connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_potions = {current_total_potions + potions.quantity}"))
                     connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET total_ml = {current_total_ml - total_ml_spent}"))
                     connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET red_ml = {current_red_ml - red_ml_spent}"))
@@ -71,21 +71,21 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
-        red_potions_to_brew = math.floor((first_row.num_red_ml / 100) / 2)
-        green_potions_to_brew = math.floor(first_row.num_green_ml / 100)
-        blue_potions_to_brew = math.floor((first_row.num_blue_ml / 100) / 2)
-        purple_potions_to_brew = min(math.floor((first_row.num_red_ml / 100) / 2), math.floor((first_row.num_blue_ml / 100) / 2))
+        red_potions_to_brew = math.floor((first_row.red_ml / 100) / 2)
+        green_potions_to_brew = math.floor(first_row.green_ml / 100)
+        blue_potions_to_brew = math.floor((first_row.blue_ml / 100) / 2)
+        purple_potions_to_brew = min(math.floor((first_row.red_ml / 100)), math.floor((first_row.blue_ml / 100)))
         potions_to_brew
-    potions_to_brew["RED_POTION_100"] = red_potions_to_brew
-    potions_to_brew["GREEN_POTION_100"] = green_potions_to_brew
-    potions_to_brew["BLUE_POTION_100"] = blue_potions_to_brew
-    potions_to_brew["PURPLE_POTION_50_50"] = purple_potions_to_brew
-    result = connection.execute(sqlalchemy.text("SELECT * FROM potions"))
-    for row in result:
-        if potions_to_brew[row.sku] != 0:
-            ret_arr.append(
-                {
-                    "potion_type": [row.red, row.green, row.blue, row.dark],
-                    "quantity": potions_to_brew[row.sku],
-                })
+        potions_to_brew["RED_POTION_100"] = red_potions_to_brew
+        potions_to_brew["GREEN_POTION_100"] = green_potions_to_brew
+        potions_to_brew["BLUE_POTION_100"] = blue_potions_to_brew
+        potions_to_brew["PURPLE_POTION_50_50"] = purple_potions_to_brew
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions"))
+        for row in result:
+            if potions_to_brew[row.sku] != 0:
+                ret_arr.append(
+                    {
+                        "potion_type": [row.red, row.green, row.blue, row.dark],
+                        "quantity": potions_to_brew[row.sku],
+                    })
     return ret_arr
