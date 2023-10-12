@@ -44,7 +44,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             sqlalchemy.text("""
                 UPDATE global_inventory SET 
                 gold = gold - :gold_spent,
-                total_ml = total_ml + total_ml_delivered
+                total_ml = total_ml + total_ml_delivered,
                 red_ml = red_ml + :red_ml_delivered,
                 green_ml = green_ml + :green_ml_delivered,
                 blue_ml = blue_ml + :blue_ml_delivered
