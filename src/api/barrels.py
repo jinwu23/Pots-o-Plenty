@@ -28,22 +28,23 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     green_ml_delivered = 0
     blue_ml_delivered = 0
     gold_spent = 0
+    total_ml_delivered = 0
     for barrel in barrels_delivered:
         if(barrel.sku == "SMALL_RED_BARREL"):
             red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            gold_spent += barrel.price * barrel.quantity
         if(barrel.sku == "SMALL_GREEN_BARREL"):
-            green_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            gold_spent += barrel.price * barrel.quantity
+            green_ml_delivered += barrel.ml_per_barrel * barrel.quantity    
         if(barrel.sku == "SMALL_BLUE_BARREL"):
             blue_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-            gold_spent += barrel.price * barrel.quantity
+        gold_spent += barrel.price * barrel.quantity
+        total_ml_delivered += barrel.ml_per_barrel * barrel.quantity
     # add current ml with ml_delivered
     with db.engine.begin() as connection:
         connection.execute(
             sqlalchemy.text("""
                 UPDATE global_inventory SET 
                 gold = gold - :gold_spent,
+                total_ml = total_ml + total_ml_delivered
                 red_ml = red_ml + :red_ml_delivered,
                 green_ml = green_ml + :green_ml_delivered,
                 blue_ml = blue_ml + :blue_ml_delivered
