@@ -77,3 +77,14 @@ INSERT INTO potions (
     blue,
     dark) 
 VALUES ("PURPLE_POTION_50_50", "blue potion", 0, 100, 50, 0, 50, 0);
+
+CREATE TABLE carts(
+    id bigint generated always as identity,
+);
+
+CREATE TABLE cart_items(
+    id bigint generated always as identity,
+    cart_id: int,
+    sku: text,
+    quantity: text,
+);
