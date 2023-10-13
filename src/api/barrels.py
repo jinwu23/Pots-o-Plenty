@@ -49,7 +49,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
                 green_ml = green_ml + :green_ml_delivered,
                 blue_ml = blue_ml + :blue_ml_delivered
             """), 
-            [{"gold_spent": gold_spent, "red_ml_delivered": red_ml_delivered, "green_ml_delivered": green_ml_delivered, "blue_ml_delivered": blue_ml_delivered}])
+            [{"gold_spent": gold_spent, "red_ml_delivered": red_ml_delivered, "green_ml_delivered": green_ml_delivered, "blue_ml_delivered": blue_ml_delivered, "total_ml_delivered": total_ml_delivered}])
     return "OK"
 
 # Gets called once a day
