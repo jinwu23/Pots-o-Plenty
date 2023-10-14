@@ -21,9 +21,10 @@ def create_cart(new_cart: NewCart):
     # add new row into carts table and get generated id
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text(
-            "INSERT INTO carts DEFAULT VALUES RETURNING id"
-            ))
-        id = result.scalar()
+            "INSERT INTO carts (customer_name) VALUES (:customer_name) RETURNING id"
+            ),
+            [{"customer_name": new_cart.customer}])
+        id = result.scalar_one()
     return {"cart_id": id}
 
 
@@ -42,25 +43,19 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
     print(f"setting cart quantity: cart_id: {cart_id} item_sku: + {item_sku} quantity: {cart_item.quantity}")
     # check if row with cart_id and item_sku already exist in table
-    item_price = 0
     with db.engine.begin() as connection:
-        # check price of potion
-        result = connection.execute(sqlalchemy.text(
-            """
-            SELECT price
-            FROM potions
-            WHERE sku = :sku      
-            """),
-        [{"sku": item_sku}])
-        item_price = result.scalar()
         # check if row exists in cart_items table
         result = connection.execute(sqlalchemy.text(
             """
             SELECT COUNT(*)
             FROM cart_items
-            WHERE cart_id = :cart_id and sku = :sku      
+            WHERE cart_id = :cart_id and potion_id = (
+            SELECT id
+            FROM potions
+            WHERE sku = :item_sku
+            )     
             """),
-        [{"cart_id": cart_id, "sku": item_sku}])
+        [{"cart_id": cart_id, "item_sku": item_sku}])
         count = result.scalar()
         if count != 0:
             # update cart_items table with new item and quantity
@@ -68,19 +63,19 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                 """
                 UPDATE cart_items
                 SET quantity = :quantity
-                WHERE cart_id = :cart_id and sku = :sku
+                WHERE cart_id = :cart_id and potion_id = (SELECT id FROM potions WHERE sku = :item_sku)
                 """),
-                [{"cart_id": cart_id, "sku": item_sku, "quantity": cart_item.quantity}])
+                [{"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity}])
         else:
             # create a new entry for specific cart quantity and sku
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO cart_items
-                (cart_id, sku, quantity)
+                (cart_id, potion_id, quantity)
                 VALUES
-                (:cart_id, :sku, :quantity)          
+                (:cart_id, (SELECT id FROM potions WHERE sku = :item_sku), :quantity)          
                 """),
-                [{"cart_id": cart_id, "sku": item_sku, "quantity": cart_item.quantity}])
+                [{"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity}])
         
     return "OK"
 
@@ -96,9 +91,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         # get all cart_items associated with cart_id
         result = connection.execute(sqlalchemy.text(
             """
-            SELECT cart_id, cart_items.sku, cart_items.quantity, price
+            SELECT cart_id, potion_id, cart_items.quantity, price
             FROM cart_items
-            JOIN potions ON cart_items.sku = potions.sku
+            JOIN potions ON cart_items.potion_id = potions.id
             WHERE cart_id = :cart_id
             """),
             [{"cart_id": cart_id}])
@@ -123,21 +118,22 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 """
                 UPDATE potions
                 SET quantity = quantity - :potions_bought
-                WHERE sku = :sku
+                WHERE id = :potion_id
                 """),
-                [{"potions_bought": potions_bought, "sku": row.sku}])
+                [{"potions_bought": potions_bought, "potion_id": row.potion_id}])
             # removing cart from carts and cart_items
-            connection.execute(sqlalchemy.text(
-                """
-                DELETE FROM carts
-                WHERE id = :cart_id
-                """),
-                [{"cart_id": cart_id}])
             connection.execute(sqlalchemy.text(
                 """
                 DELETE FROM cart_items
                 WHERE cart_id = :cart_id
                 """),
                 [{"cart_id": cart_id}])
+            connection.execute(sqlalchemy.text(
+                """
+                DELETE FROM carts
+                WHERE id = :cart_id
+                """),
+                [{"cart_id": cart_id}])
+            print(f"checkout, cart_id: {cart_id}, potion_id = {row.potion_id}")
 
     return {"total_potions_bought": potions_bought, "total_gold_paid": gold_paid}
