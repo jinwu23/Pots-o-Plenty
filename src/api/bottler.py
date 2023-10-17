@@ -77,27 +77,40 @@ def get_bottle_plan():
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
-    # dictionary of item SKU to number of potions to brew
-    potions_to_brew = {}
     ret_arr = []
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         first_row = result.first()
-        red_potions_to_brew = math.floor((first_row.red_ml / 100) / 2)
-        green_potions_to_brew = math.floor(first_row.green_ml / 100)
-        blue_potions_to_brew = math.floor((first_row.blue_ml / 100) / 2)
-        purple_potions_to_brew = min(math.floor((first_row.red_ml / 100)), math.floor((first_row.blue_ml / 100)))
-        potions_to_brew
-        potions_to_brew["RED_POTION_100"] = red_potions_to_brew
-        potions_to_brew["GREEN_POTION_100"] = green_potions_to_brew
-        potions_to_brew["BLUE_POTION_100"] = blue_potions_to_brew
-        potions_to_brew["PURPLE_POTION_50_50"] = purple_potions_to_brew
+        red_ml = first_row.red_ml
+        green_ml = first_row.green_ml
+        blue_ml = first_row.blue_ml
+        total_potions_brewable = 300 - first_row.total_potions
+        # divide total_potions_brewable by potion types
+        result = connection.execute(sqlalchemy.text("SELECT COUNT(*) FROM potions"))
+        total_potions_brewable = math.floor(total_potions_brewable / result.scalar())
         result = connection.execute(sqlalchemy.text("SELECT * FROM potions"))
         for row in result:
-            if potions_to_brew[row.sku] != 0:
+            potions_brewable = 0
+            if(row.red == 100):
+                potions_brewable = math.floor((red_ml/row.red)/2)
+            if(row.green == 100):
+                potions_brewable = math.floor((green_ml/row.green)/2)
+            if(row.blue == 100):
+                potions_brewable = math.floor((blue_ml/row.blue)/2)
+            if(row.red == 50 and row.green == 50):
+                potions_brewable = math.floor(min((red_ml/row.red)/4, (green_ml/row.green)/4))
+            if(row.red == 50 and row.blue == 50):
+                potions_brewable = math.floor(min((red_ml/row.red)/4, (blue_ml/row.blue)/4))
+            if(row.green == 50 and row.blue == 50):
+                potions_brewable = math.floor(min((green_ml/row.green)/4, (blue_ml/row.blue)/4))
+            # check if we exceed capacity
+            if(potions_brewable > total_potions_brewable):
+                potions_brewable = total_potions_brewable
+            if(potions_brewable > 0):
                 ret_arr.append(
-                    {
-                        "potion_type": [row.red, row.green, row.blue, row.dark],
-                        "quantity": potions_to_brew[row.sku],
-                    })
+                {
+                    "potion_type": [row.red, row.green, row.blue, row.dark],
+                    "quantity": potions_brewable,
+                })
+            
     return ret_arr
