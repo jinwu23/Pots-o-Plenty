@@ -18,13 +18,27 @@ class NewCart(BaseModel):
 @router.post("/")
 def create_cart(new_cart: NewCart):
     """ """
-    # add new row into carts table and get generated id
     with db.engine.begin() as connection:
+        # check if customer has already created a cart
         result = connection.execute(sqlalchemy.text(
-            "INSERT INTO carts (customer_name) VALUES (:customer_name) RETURNING id"
+            "SELECT count(*) FROM carts WHERE customer_name = :customer_name"
             ),
             [{"customer_name": new_cart.customer}])
-        id = result.scalar_one()
+        # customer has no entry in the carts table
+        if(result.scalar_one() == 0):
+            # add new row into carts table and get generated id
+            result = connection.execute(sqlalchemy.text(
+                "INSERT INTO carts (customer_name) VALUES (:customer_name) RETURNING id"
+                ),
+                [{"customer_name": new_cart.customer}])
+            id = result.scalar_one()
+        # customer has entry in the carts table
+        else:
+            result = connection.execute(sqlalchemy.text(
+                "SELECT id FROM carts WHERE customer_name = :customer_name"
+                ),
+                [{"customer_name": new_cart.customer}])
+            id = result.scalar_one()
     return {"cart_id": id}
 
 
@@ -85,8 +99,6 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    total_potions_bought = 0
-    total_gold_paid = 0
     with db.engine.begin() as connection:
         # get all cart_items associated with cart_id
         result = connection.execute(sqlalchemy.text(
@@ -102,36 +114,29 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             # update gold_paid and potions_bought
             gold_paid = row.quantity * row.price
             potions_bought = row.quantity
-            total_gold_paid += gold_paid
-            total_potions_bought += potions_bought
-            # update global_inventory with new gold and total_potions
+            # create gold_ledger_entity
             connection.execute(sqlalchemy.text(
                 """
-                UPDATE global_inventory
-                SET 
-                gold = gold + :gold_paid,
-                total_potions = total_potions - :potions_bought
+                INSERT INTO gold_ledger_entities
+                (gold_change, description)
+                VALUES
+                (:gold_paid, 'cart checkout id =:cart_id potion_type = :potion_id potions_bought = :potions_bought')          
                 """),
-                [{"gold_paid": gold_paid, "potions_bought": potions_bought}])
-            # update potion inventory with new potion quantities
+                [{"gold_paid": gold_paid, "cart_id": cart_id, "potion_id": row.potion_id, "potions_bought": potions_bought}])
+            # create potion ledger entity
             connection.execute(sqlalchemy.text(
                 """
-                UPDATE potions
-                SET quantity = quantity - :potions_bought
-                WHERE id = :potion_id
+                INSERT INTO potion_ledger_entities
+                (potion_change, potion_id, description)
+                VALUES
+                (:potions_bought,:potion_id,'cart checkout id = :cart_id')          
                 """),
-                [{"potions_bought": potions_bought, "potion_id": row.potion_id}])
-            # removing cart from carts and cart_items
+                [{"potions_bought": -potions_bought, "potion_id": row.potion_id, "cart_id": cart_id}])
+            # removing cart_items
             connection.execute(sqlalchemy.text(
                 """
                 DELETE FROM cart_items
                 WHERE cart_id = :cart_id
-                """),
-                [{"cart_id": cart_id}])
-            connection.execute(sqlalchemy.text(
-                """
-                DELETE FROM carts
-                WHERE id = :cart_id
                 """),
                 [{"cart_id": cart_id}])
             print(f"checkout, cart_id: {cart_id}, potion_id = {row.potion_id}")
