@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from src.api import auth
-<<<<<<< HEAD
 from enum import Enum
-=======
 import sqlalchemy
 from src import database as db
-
->>>>>>> main
 
 router = APIRouter(
     prefix="/carts",
@@ -15,7 +11,6 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
-<<<<<<< HEAD
 class search_sort_options(str, Enum):
     customer_name = "customer_name"
     item_sku = "item_sku"
@@ -74,8 +69,6 @@ def search_orders(
     }
 
 
-=======
->>>>>>> main
 class NewCart(BaseModel):
     customer: str
 
