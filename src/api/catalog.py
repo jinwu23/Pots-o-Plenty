@@ -1,7 +1,8 @@
 from fastapi import APIRouter
+import sqlalchemy
+from src import database as db
 
 router = APIRouter()
-
 
 @router.get("/catalog/", tags=["catalog"])
 def get_catalog():
@@ -10,13 +11,26 @@ def get_catalog():
     """
 
     # Can return a max of 20 items.
-
-    return [
-            {
-                "sku": "RED_POTION_0",
-                "name": "red potion",
-                "quantity": 1,
-                "price": 50,
-                "potion_type": [100, 0, 0, 0],
-            }
-        ]
+    ret_arr = []
+    with db.engine.begin() as connection:
+            result = connection.execute(sqlalchemy.text("SELECT * FROM potions"))
+            for row in result:
+                result = connection.execute(sqlalchemy.text(
+                    """SELECT 
+                    COALESCE(SUM(potion_change),0)
+                    FROM potion_ledger_entities
+                    WHERE potion_id = :potion_id
+                    """),
+                    [{"potion_id": row.id}])
+                potions = result.scalar_one()
+                if potions > 0:
+                    ret_arr.append(
+                            {
+                                "sku": row.sku,
+                                "name": row.name,
+                                "quantity": potions,
+                                "price": row.price,
+                                "potion_type": [row.red, row.green, row.blue, row.dark]
+                            })
+    print(f"Catalog: {ret_arr}")
+    return ret_arr
