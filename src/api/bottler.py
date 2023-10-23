@@ -21,6 +21,8 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     print(potions_delivered)
+    potion_ledger_entities = []
+    ml_ledger_entities = []
     with db.engine.begin() as connection:
         for potion in potions_delivered:
             # get specific potion_id
@@ -35,29 +37,31 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                     """),
                     [{"potion_red": potion.potion_type[0], "potion_green": potion.potion_type[1], "potion_blue": potion.potion_type[2], "potion_dark": potion.potion_type[3]}])
             potion_id = result.scalar_one()
-            # insert potion_ledger_entity
-            connection.execute(sqlalchemy.text(
+            # add to ledger entities
+            potion_ledger_entities.append({"potion_id": potion_id, "potions_delivered": potion.quantity})
+            ml_ledger_entities.append({
+                "red_change": -(potion.potion_type[0] * potion.quantity), 
+                "green_change": -(potion.potion_type[1] * potion.quantity), 
+                "blue_change": -(potion.potion_type[2] * potion.quantity), 
+                "dark_change": -(potion.potion_type[3] * potion.quantity), 
+                "potion_type": potion_id, 
+                "quantity": potion.quantity})
+        # insert potion_ledger_entity
+        connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO potion_ledger_entities
                 (potion_change, potion_id, description)
                 VALUES
                 (:potions_delivered, :potion_id, 'bottler delivery')          
-                """),
-                [{"potions_delivered": potion.quantity, "potion_id": potion_id,}])
+                """), potion_ledger_entities)
             # insert ml potion_ledger_entity
-            connection.execute(sqlalchemy.text(
+        connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO ml_ledger_entities
                 (red_change, green_change, blue_change, dark_change, description)
                 VALUES
                 (:red_change, :green_change, :blue_change, :dark_change, 'bottler delivery: potion_type = :potion_type, quantity = :quantity')          
-                """),
-                [{"red_change": -(potion.potion_type[0] * potion.quantity), 
-                  "green_change": -(potion.potion_type[1] * potion.quantity), 
-                  "blue_change": -(potion.potion_type[2] * potion.quantity), 
-                  "dark_change": -(potion.potion_type[3] * potion.quantity), 
-                  "potion_type": potion_id, 
-                  "quantity": potion.quantity}])
+                """), ml_ledger_entities)
     return "OK"
 
 # Gets called 4 times a day

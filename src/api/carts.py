@@ -99,39 +99,61 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
+    gold_ledger_entities = []
+    potion_ledger_entities = []
+    total_potions_bought = 0
+    total_gold_paid = 0
     with db.engine.begin() as connection:
-        # get all cart_items associated with cart_id
+        # check if checkout is already happening 
         result = connection.execute(sqlalchemy.text(
+        """
+        SELECT in_checkout
+        FROM carts
+        WHERE id = :cart_id
+        """), [{"cart_id": cart_id}])
+        in_checkout = result.first().in_checkout
+        if(in_checkout == False):
+            # set in_checkout to true
+            result = connection.execute(sqlalchemy.text(
             """
-            SELECT cart_id, potion_id, cart_items.quantity, price
-            FROM cart_items
-            JOIN potions ON cart_items.potion_id = potions.id
-            WHERE cart_id = :cart_id
-            """),
-            [{"cart_id": cart_id}])
-        # perform operations based on each item
-        for row in result:
-            # update gold_paid and potions_bought
-            gold_paid = row.quantity * row.price
-            potions_bought = row.quantity
-            # create gold_ledger_entity
+            UPDATE carts
+            SET in_checkout = true
+            WHERE id = :cart_id
+            """), [{"cart_id": cart_id}])
+            # get all cart_items associated with cart_id
+            result = connection.execute(sqlalchemy.text(
+                """
+                SELECT cart_id, potion_id, cart_items.quantity, price
+                FROM cart_items
+                JOIN potions ON cart_items.potion_id = potions.id
+                WHERE cart_id = :cart_id
+                """),
+                [{"cart_id": cart_id}])
+            # create ledger entity for each cart_item
+            for row in result:
+                gold_paid = row.quantity * row.price
+                potions_bought = row.quantity
+                total_gold_paid += gold_paid
+                total_potions_bought += potions_bought
+                gold_ledger_entities.append({"gold_paid": gold_paid, "cart_id": cart_id, "potion_id": row.potion_id, "potions_bought": potions_bought})
+                potion_ledger_entities.append({"potions_bought": -potions_bought, "potion_id": row.potion_id, "cart_id": cart_id})
+            
+            # insert all gold ledger entities
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO gold_ledger_entities
                 (gold_change, description)
                 VALUES
                 (:gold_paid, 'cart checkout id =:cart_id potion_type = :potion_id potions_bought = :potions_bought')          
-                """),
-                [{"gold_paid": gold_paid, "cart_id": cart_id, "potion_id": row.potion_id, "potions_bought": potions_bought}])
-            # create potion ledger entity
+                """), gold_ledger_entities)
+            # insert all potion ledger entities
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO potion_ledger_entities
                 (potion_change, potion_id, description)
                 VALUES
                 (:potions_bought,:potion_id,'cart checkout id = :cart_id')          
-                """),
-                [{"potions_bought": -potions_bought, "potion_id": row.potion_id, "cart_id": cart_id}])
+                """), potion_ledger_entities)
             # removing cart_items
             connection.execute(sqlalchemy.text(
                 """
@@ -139,6 +161,13 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 WHERE cart_id = :cart_id
                 """),
                 [{"cart_id": cart_id}])
-            print(f"checkout, cart_id: {cart_id}, potion_id = {row.potion_id}")
+            # set in_checkout to false
+            connection.execute(sqlalchemy.text(
+            """
+            UPDATE carts
+            SET in_checkout = false
+            WHERE id = :cart_id
+            """), [{"cart_id": cart_id}])
+            print(f"checkout, cart_id: {cart_id}")
 
-    return {"total_potions_bought": potions_bought, "total_gold_paid": gold_paid}
+    return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}

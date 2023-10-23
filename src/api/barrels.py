@@ -22,6 +22,8 @@ class Barrel(BaseModel):
 @router.post("/deliver")
 def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
+    ml_ledger_entities = []
+    gold_ledger_entities = []
     print(barrels_delivered)
     for barrel in barrels_delivered:
         potion_type = ""
@@ -41,27 +43,25 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         if(barrel.potion_type == [0,0,0,1]):
             potion_type = 'dark'
             dark_ml = barrel.ml_per_barrel * barrel.quantity
-        # insert ml_ledger_entity
-        with db.engine.begin() as connection:
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO ml_ledger_entities
-                (red_change, green_change, blue_change, dark_change, description)
-                VALUES
-                (:red_change, :green_change, :blue_change, :dark_change, 'barrel delivery: price = :price, quantity = :quantity')          
-                """),
-                [{"red_change": red_ml, "green_change": green_ml, "blue_change": blue_ml, "dark_change": dark_ml, "potion_type": potion_type, "price": barrel.price, "quantity": barrel.quantity}])
-        # insert gold_ledger_entity
-        with db.engine.begin() as connection:
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO gold_ledger_entities
-                (gold_change, description)
-                VALUES
-                (:gold_change, CONCAT('barrel delivery: potion_type = ', :potion_type, ', price = :price, quantity = :quantity'))          
-                """),
-                [{"gold_change": -(barrel.quantity * barrel.price), "potion_type": potion_type, "price": barrel.price, "quantity": barrel.quantity}])
-        
+        ml_ledger_entities.append({"red_change": red_ml, "green_change": green_ml, "blue_change": blue_ml, "dark_change": dark_ml, "potion_type": potion_type, "price": barrel.price, "quantity": barrel.quantity})
+        gold_ledger_entities.append({"gold_change": -(barrel.quantity * barrel.price), "potion_type": potion_type, "price": barrel.price, "quantity": barrel.quantity})
+    # insert ml_ledger_entity
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO ml_ledger_entities
+            (red_change, green_change, blue_change, dark_change, description)
+            VALUES
+            (:red_change, :green_change, :blue_change, :dark_change, 'barrel delivery: price = :price, quantity = :quantity')          
+            """), ml_ledger_entities)
+    # insert gold_ledger_entity
+        connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO gold_ledger_entities
+            (gold_change, description)
+            VALUES
+            (:gold_change, CONCAT('barrel delivery: potion_type = ', :potion_type, ', price = :price, quantity = :quantity'))          
+            """), gold_ledger_entities)
     return "OK"
 
 # Gets called once a day
