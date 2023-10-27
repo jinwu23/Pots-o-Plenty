@@ -85,7 +85,7 @@ def search_orders(
             search_query = search_query.where(db.carts.c.customer_name.ilike(f"%{customer_name}%"))
 
         if potion_sku != "":
-            search_query = search_query.where(db.potions.c.item_sku.ilike(f"%{potion_sku}%"))
+            search_query = search_query.where(db.potions.c.sku.ilike(f"%{potion_sku}%"))
 
         # get the result
         result = connection.execute(search_query)
