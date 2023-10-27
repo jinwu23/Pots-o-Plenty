@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from src.api import auth
 from enum import Enum
 import sqlalchemy
+from sqlalchemy import desc
+from sqlalchemy import asc
+from sqlalchemy import func
 from src import database as db
 
 router = APIRouter(
@@ -53,19 +56,89 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
+    results = []
+    previous = ""
+    next = ""
+    with db.engine.begin() as connection:
+        # get all orders with Customer, Quantity, Item SKU, Time
+        search_query = (sqlalchemy.select(
+                db.cart_items.c.id,
+                db.cart_items.c.timestamp,
+                db.cart_items.c.quantity,
+                db.carts.c.customer_name,
+                db.potions.c.sku,
+                (db.cart_items.c.quantity * db.potions.c.price).label('gold_paid'),
+            ).select_from(db.cart_items)
+        .join(db.carts, db.cart_items.c.cart_id == db.carts.c.id)
+        .join(db.potions, db.cart_items.c.potion_id == db.potions.c.id)
+        .where(db.cart_items.c.checked_out == True)
+        )
 
+        # determine sorting based on order by
+        if sort_order == search_sort_order.asc:
+            search_query = search_query.order_by(asc(sort_col))
+        if sort_order == search_sort_order.desc:
+            search_query = search_query.order_by(desc(sort_col))
+
+        # determine sorting based on name and sku
+        if customer_name != "":
+            search_query = search_query.where(db.carts.c.customer_name.ilike(f"%{customer_name}%"))
+
+        if potion_sku != "":
+            search_query = search_query.where(db.potions.c.sku.ilike(f"%{potion_sku}%"))
+
+        # get the result
+        result = connection.execute(search_query)
+        rows = result.fetchall()
+        print(rows[0].sku)
+        print(rows[1].sku)
+
+        num_rows = len(rows)
+        print(num_rows)
+
+        # find our index on the table
+        index = 0
+        if search_page != "":
+            index = int(search_page)
+                    
+        # see if we have a previous 
+        if index >= 5:
+            previous = str(index - 5)
+
+        # see if we have more rows to display
+        if num_rows > index + 5:
+            next = str(index + 5)
+            # we can display 5 rows 
+            for i in range(index, index + 5):
+                print(i)
+                curr_row = rows[i]
+                if curr_row is not None:
+                    results.append({
+                        "line_item_id": curr_row.id,
+                        "item_sku": curr_row.sku,
+                        "customer_name": curr_row.customer_name,
+                        "line_item_total": curr_row.gold_paid,
+                        "timestamp": curr_row.timestamp,
+                    })
+        else:
+            # figure out how many rows we can display and add all to results
+            displayable_rows = num_rows - index
+            for i in range(index, index + displayable_rows):
+                print(i)
+                curr_row = rows[i]
+                if curr_row is not None:
+                    results.append({
+                        "line_item_id": curr_row.id,
+                        "item_sku": curr_row.sku,
+                        "customer_name": curr_row.customer_name,
+                        "line_item_total": curr_row.gold_paid,
+                        "timestamp": curr_row.timestamp,
+                    })
+        
     return {
-        "previous": "",
-        "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
-            }
-        ],
+        "previous": previous,
+        "next": next,
+        "results": results,
     }
 
 
@@ -184,7 +257,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 SELECT cart_id, potion_id, cart_items.quantity, price
                 FROM cart_items
                 JOIN potions ON cart_items.potion_id = potions.id
-                WHERE cart_id = :cart_id
+                WHERE cart_id = :cart_id AND checked_out = false
                 """),
                 [{"cart_id": cart_id}])
             # create ledger entity for each cart_item
@@ -212,14 +285,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 VALUES
                 (:potions_bought,:potion_id,'cart checkout id = :cart_id')          
                 """), potion_ledger_entities)
-            # removing cart_items
+            # set checked_out to true for cart_items
             connection.execute(sqlalchemy.text(
                 """
-                DELETE FROM cart_items
+                UPDATE cart_items
+                SET checked_out = true
                 WHERE cart_id = :cart_id
                 """),
                 [{"cart_id": cart_id}])
-            # set in_checkout to false
+            # set in_checkout to false for cart_items
             connection.execute(sqlalchemy.text(
             """
             UPDATE carts
