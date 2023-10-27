@@ -59,6 +59,16 @@ def search_orders(
     results = []
     previous = ""
     next = ""
+    # find our index on the table
+    index = 0
+    if search_page != "":
+        index = int(search_page)
+                    
+    # see if we have a previous 
+    if index >= 5:
+        previous = str(index - 5)
+    next = str(index + 5)
+
     with db.engine.begin() as connection:
         # get all orders with Customer, Quantity, Item SKU, Time
         search_query = (sqlalchemy.select(
@@ -72,6 +82,8 @@ def search_orders(
         .join(db.carts, db.cart_items.c.cart_id == db.carts.c.id)
         .join(db.potions, db.cart_items.c.potion_id == db.potions.c.id)
         .where(db.cart_items.c.checked_out == True)
+        .limit(5)
+        .offset(index)
         )
 
         # determine sorting based on order by
@@ -89,49 +101,15 @@ def search_orders(
 
         # get the result
         result = connection.execute(search_query)
-        rows = result.fetchall()
 
-        num_rows = len(rows)
-        print(num_rows)
-
-        # find our index on the table
-        index = 0
-        if search_page != "":
-            index = int(search_page)
-                    
-        # see if we have a previous 
-        if index >= 5:
-            previous = str(index - 5)
-
-        # see if we have more rows to display
-        if num_rows > index + 5:
-            next = str(index + 5)
-            # we can display 5 rows 
-            for i in range(index, index + 5):
-                print(i)
-                curr_row = rows[i]
-                if curr_row is not None:
-                    results.append({
-                        "line_item_id": curr_row.id,
-                        "item_sku": curr_row.item_sku,
-                        "customer_name": curr_row.customer_name,
-                        "line_item_total": curr_row.line_item_total,
-                        "timestamp": curr_row.timestamp,
-                    })
-        else:
-            # figure out how many rows we can display and add all to results
-            displayable_rows = num_rows - index
-            for i in range(index, index + displayable_rows):
-                print(i)
-                curr_row = rows[i]
-                if curr_row is not None:
-                    results.append({
-                        "line_item_id": curr_row.id,
-                        "item_sku": curr_row.item_sku,
-                        "customer_name": curr_row.customer_name,
-                        "line_item_total": curr_row.line_item_total,
-                        "timestamp": curr_row.timestamp,
-                    })
+        for row in result:
+            results.append({
+                "line_item_id": row.id,
+                "item_sku": row.item_sku,
+                "customer_name": row.customer_name,
+                "line_item_total": row.line_item_total,
+                "timestamp": row.timestamp,
+            })
         
     return {
         "previous": previous,
