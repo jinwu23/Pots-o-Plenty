@@ -16,8 +16,8 @@ router = APIRouter(
 
 class search_sort_options(str, Enum):
     customer_name = "customer_name"
-    item_sku = "sku"
-    line_item_total = "gold_paid"
+    item_sku = "item_sku"
+    line_item_total = "line_item_total"
     timestamp = "timestamp"
 
 class search_sort_order(str, Enum):
@@ -66,8 +66,8 @@ def search_orders(
                 db.cart_items.c.timestamp,
                 db.cart_items.c.quantity,
                 db.carts.c.customer_name,
-                db.potions.c.sku,
-                (db.cart_items.c.quantity * db.potions.c.price).label('gold_paid'),
+                db.potions.c.sku.label('item_sku'),
+                (db.cart_items.c.quantity * db.potions.c.price).label('line_item_total'),
             ).select_from(db.cart_items)
         .join(db.carts, db.cart_items.c.cart_id == db.carts.c.id)
         .join(db.potions, db.cart_items.c.potion_id == db.potions.c.id)
@@ -85,13 +85,11 @@ def search_orders(
             search_query = search_query.where(db.carts.c.customer_name.ilike(f"%{customer_name}%"))
 
         if potion_sku != "":
-            search_query = search_query.where(db.potions.c.sku.ilike(f"%{potion_sku}%"))
+            search_query = search_query.where(db.potions.c.item_sku.ilike(f"%{potion_sku}%"))
 
         # get the result
         result = connection.execute(search_query)
         rows = result.fetchall()
-        print(rows[0].sku)
-        print(rows[1].sku)
 
         num_rows = len(rows)
         print(num_rows)
@@ -115,9 +113,9 @@ def search_orders(
                 if curr_row is not None:
                     results.append({
                         "line_item_id": curr_row.id,
-                        "item_sku": curr_row.sku,
+                        "item_sku": curr_row.item_sku,
                         "customer_name": curr_row.customer_name,
-                        "line_item_total": curr_row.gold_paid,
+                        "line_item_total": curr_row.line_item_total,
                         "timestamp": curr_row.timestamp,
                     })
         else:
@@ -129,9 +127,9 @@ def search_orders(
                 if curr_row is not None:
                     results.append({
                         "line_item_id": curr_row.id,
-                        "item_sku": curr_row.sku,
+                        "item_sku": curr_row.item_sku,
                         "customer_name": curr_row.customer_name,
-                        "line_item_total": curr_row.gold_paid,
+                        "line_item_total": curr_row.line_item_total,
                         "timestamp": curr_row.timestamp,
                     })
         
