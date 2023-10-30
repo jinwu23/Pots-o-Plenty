@@ -170,7 +170,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             """
             SELECT COUNT(*)
             FROM cart_items
-            WHERE cart_id = :cart_id and potion_id = (
+            WHERE cart_id = :cart_id and checked_out = false and potion_id = (
             SELECT id
             FROM potions
             WHERE sku = :item_sku
@@ -184,7 +184,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                 """
                 UPDATE cart_items
                 SET quantity = :quantity
-                WHERE cart_id = :cart_id and potion_id = (SELECT id FROM potions WHERE sku = :item_sku)
+                WHERE cart_id = :cart_id and checked_out = false and potion_id = (SELECT id FROM potions WHERE sku = :item_sku)
                 """),
                 [{"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity}])
         else:
@@ -244,23 +244,24 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 total_potions_bought += potions_bought
                 gold_ledger_entities.append({"gold_paid": gold_paid, "cart_id": cart_id, "potion_id": row.potion_id, "potions_bought": potions_bought})
                 potion_ledger_entities.append({"potions_bought": -potions_bought, "potion_id": row.potion_id, "cart_id": cart_id})
-            
-            # insert all gold ledger entities
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO gold_ledger_entities
-                (gold_change, description)
-                VALUES
-                (:gold_paid, 'cart checkout id =:cart_id potion_type = :potion_id potions_bought = :potions_bought')          
-                """), gold_ledger_entities)
-            # insert all potion ledger entities
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO potion_ledger_entities
-                (potion_change, potion_id, description)
-                VALUES
-                (:potions_bought,:potion_id,'cart checkout id = :cart_id')          
-                """), potion_ledger_entities)
+            if gold_ledger_entities != []:
+                # insert all gold ledger entities
+                connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO gold_ledger_entities
+                    (gold_change, description)
+                    VALUES
+                    (:gold_paid, 'cart checkout id =:cart_id potion_type = :potion_id potions_bought = :potions_bought')          
+                    """), gold_ledger_entities)
+            if potion_ledger_entities != []:
+                # insert all potion ledger entities
+                connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO potion_ledger_entities
+                    (potion_change, potion_id, description)
+                    VALUES
+                    (:potions_bought,:potion_id,'cart checkout id = :cart_id')          
+                    """), potion_ledger_entities)
             # set checked_out to true for cart_items
             connection.execute(sqlalchemy.text(
                 """
@@ -269,7 +270,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 WHERE cart_id = :cart_id
                 """),
                 [{"cart_id": cart_id}])
-            # set in_checkout to false for cart_items
+            # set in_checkout to false for carts
             connection.execute(sqlalchemy.text(
             """
             UPDATE carts
